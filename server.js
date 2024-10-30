@@ -28,6 +28,7 @@ app.use(cookieParser())
 app.use('/', express.static(path.join(__dirname, 'public'))) // where to find static files like css or things like an image
 
 app.use('/', require('./routes/root'))
+app.use('/users', require('./routes/userRoutes'))
 
 app.all('*', (req, res) => { // catch all
     res.status(404)
