@@ -6,8 +6,8 @@ const bcrypt = require('bcrypt')
 // get, post, patch, delete for /users endpoint
 
 const getAllUsers = asyncHandler(async (req, res) => {
-    const users = await User.find().select('-password').lean()
-    if(!users) {
+    const users = await User.find().select('-password').lean() // exclude the password during the get request
+    if(!users?.length) {
         return res.status(400).json({message: 'No users found'})
     }
     res.json(users)
@@ -64,7 +64,7 @@ const updateUser = asyncHandler(async (req, res) => {
         return res.status(409).json({ message: 'Duplicate username'})
     } // otherwise it's not a duplicate, and rather just the user that we're looking for
 
-    user.username =username
+    user.username = username
     user.roles = roles
     user.active = active
     if (password) {
@@ -78,8 +78,34 @@ const updateUser = asyncHandler(async (req, res) => {
 })
 
 const deleteUser = asyncHandler(async (req, res) => {
+    const { id } = req.body;
 
-})
+    if (!id) {
+        return res.status(400).json({ message: 'User ID Required' });
+    }
+
+    const note = await Note.findOne({ user: id }).lean().exec();
+    if (note) {
+        return res.status(400).json({ message: 'User has assigned notes' });
+    }
+
+    const user = await User.findById(id).exec();
+
+    if (!user) {
+        return res.status(400).json({ message: 'User not found' });
+    }
+
+    // Store the username and ID before deletion
+    const username = user.username;
+    const userId = user._id;
+
+    await user.deleteOne(); // Now this just deletes the user
+
+    const reply = `Username ${username} with ID ${userId} deleted`;
+
+    res.json(reply);
+});
+
 
 module.exports = {
     getAllUsers,
